@@ -1,14 +1,15 @@
 # app/config.py
-import os
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    data_dir: str = os.getenv("FIXBRAIN_DATA_DIR", "data")
+    openai_api_key: str = ""
+    data_dir: str = "data"
 
     class Config:
         env_file = ".env"
+        env_prefix = ""
+        extra = "ignore"
 
 
 settings = Settings()

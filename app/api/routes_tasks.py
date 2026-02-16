@@ -1,7 +1,10 @@
 # app/api/routes_tasks.py
+import os
+import json
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.api.schemas import AnalyzeResult, RootCause, RepairPart, RepairPlan
-from app.core.pipeline import run_analysis_pipeline
+from app.agent import DiagnosisAgent
+from app.config import settings
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -22,12 +25,17 @@ async def analyze_task(
 
     image_bytes = await image.read()
 
-    result = run_analysis_pipeline(
+    # Run diagnosis agent
+    agent = DiagnosisAgent()
+    result = agent.run(
         task_id=task_id,
         appliance_type=appliance_type,
         problem_description=problem_description,
         image_bytes=image_bytes,
     )
+
+    # Save result to disk
+    _save_task_result(task_id, result)
 
     llm = result["llm_result"]
 
@@ -68,4 +76,12 @@ async def analyze_task(
     )
 
     return analyze_result
+
+
+def _save_task_result(task_id: str, result: dict):
+    """Save task result to disk for later inspection."""
+    os.makedirs(os.path.join(settings.data_dir, "tasks"), exist_ok=True)
+    task_path = os.path.join(settings.data_dir, "tasks", f"{task_id}.json")
+    with open(task_path, "w") as f:
+        json.dump(result, f, indent=2)
 
